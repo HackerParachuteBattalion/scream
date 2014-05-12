@@ -1,7 +1,6 @@
 import session, dbscream, json
 from votebomb import VoteBomb
 try:
-	#GLOBALS#
 	DEBUG = False
 	
 	def main(session):
@@ -22,8 +21,8 @@ try:
 		print("14. Exit")
 		if DEBUG:
 			print("#Testing Menu Below:")
-			print("--|A. ")
-			print("--|D. Get Peek Locations")
+			print("--|A. Test functionality")
+
 		choice = raw_input("#: ")
 		if choice == '1':
 			session.generateNewUserID()
@@ -76,29 +75,14 @@ try:
 		elif choice == '14':
 			exit()
 
-
 		if DEBUG:
 			if choice.lower().rstrip() == 'a':
 				'''Insert functionality to test here'''
-				data = session.getAreaYaks(userID=str("c090c991-d7fc-11e3-a6c0-0401130aa601"))
-				data = json.loads(data)['messages']
-				print('-'*20)
-				for item in data:
-					print("Message ID: " + str(item['messageID']) + '\t' + '#Likes: ' + str(item['numberOfLikes'] + '\t' +'Message: ' + item['message'] ))
-				print('-'*20)
-				#data = session.getAreaYaks(userID=str("59b9e8cb-d78f-11e3-a6c0-0401130aa601"))
-				#data = json.loads(data)['messages']
-				#print('-'*20)
-				#for item in data:
-			#		print("Message ID: " + str(item['messageID']) + '\t' + '#Likes: ' + str(item['numberOfLikes'] + '\t' +'Message: ' + item['message'] ))
-				#print('-'*20)
-
+				pass
 
 	if __name__ == "__main__":
 		session = session.Session(main, DEBUG)
 		main(session)
-
-
 
 except KeyboardInterrupt:
 	import this

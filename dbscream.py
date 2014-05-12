@@ -1,8 +1,7 @@
 import sqlite3 as sl
 import os
 DEBUG = False
-if DEBUG:
-	print "I've been called!"
+
 db = sl.connect("hacktheyak.db")
 dc = db.cursor()
 
@@ -12,16 +11,18 @@ def BuildTables():
 	dc.execute("CREATE TABLE UTA(ID TEXT)")
 	dc.execute("CREATE TABLE DTA(ID TEXT)")
 	dc.execute("CREATE TABLE PREVLOCNAME(ID TEXT, LOCNAME TEXT)")
-	dc.execute("INSERT INTO PREVLOCNAME VALUES(?)", ('only, none'))
+	toInsert = ('only', 'none',)
+	dc.execute("INSERT INTO PREVLOCNAME VALUES(?,?)", toInsert)
 	db.commit()
 def getPrevLocName():
 	dc.execute("SELECT * FROM PREVLOCNAME")
-	one = dc.fetchone()
-	#print one
+	one = dc.fetchone()[1]
+	if DEBUG:
+		print one
 	return one
 
 def updatePrevLocName(loc):
-	dc.execute("UPDATE PREVLOCNAME SET LOCNAME=? WHERE ID=?", (loc, 'only'))
+	dc.execute("UPDATE PREVLOCNAME SET LOCNAME=? WHERE ID=?", (loc, 'only',))
 	db.commit()
 
 def AddHandle(session):

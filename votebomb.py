@@ -2,8 +2,8 @@ import dbscream, json, hashlib, urllib, httplib
 
 class VoteBomb():
 		def __init__(self, session, DEBUG=False):
-			self.needUThrowAways = False
-			self.needDThrowAways = False
+			self.needUThrowAways = True
+			self.needDThrowAways = True
 			self.DEBUG = DEBUG
 			self.session = session
 			self.ubombShell = dict()
@@ -24,9 +24,9 @@ class VoteBomb():
 			else:
 				self.numVotes = int(self.numVotes)
 				if dbscream.checkNumUThrowAways(self.numVotes):
-					self.needUThrowAways = True
+					self.needUThrowAways = False
 				if dbscream.checkNumDThrowAways(self.numVotes):
-					self.needDThrowAways = True
+					self.needDThrowAways = False
 
 			print("Up-vote or down-vote (u/d)?:\n")
 			self.uv = raw_input("#: ")
@@ -36,6 +36,7 @@ class VoteBomb():
 			else:
 				self.initUThrowAways()
 				self.initDThrowAways()
+				#This may or may not work. Probably better to leave it commented out for now.
 				#if self.currentLocName != dbscream.getPrevLocName():
 				#	print("Updating location of stored userIDs\n\n")
 				#	self.updateAllLocations()
@@ -46,15 +47,13 @@ class VoteBomb():
 		def updateSingleLocation(self, uid):
 			host = 'www.yikyakapp.com'
 			url = '/YikYakFiles/updateLocation.php'
-			print uid
 			headers = {'User-Agent': self.userAgent,'Content-Type': 'application/x-www-form-urlencoded'}
 			values = {'userID': uid, 'lat': self.latitude, 'long' : self.longitude}
-			#print uid
 			values = urllib.urlencode(values)
 			url = url + '?' + values
 			if self.DEBUG:
 				print(url)
-			conn = httplib.HTTPConnection(host)
+			conn = httplib.HTTPSConnection(host)
 			conn.request("GET", url, "",  headers)
 			response = conn.getresponse()
 			data = response.read()
@@ -67,7 +66,7 @@ class VoteBomb():
 				self.updateSingleLocation(self.dvthrowAwayIDs[i])
 
 		def initUThrowAways(self):
-			if not self.needUThrowAways:
+			if self.needUThrowAways and self.uv == 'u':
 				print("Generating Up-vote ThrowAways")
 				for i in range(self.numVotes):
 					self.uvthrowAwayIDs.append(self.generateThrowAwayUserID())
@@ -75,15 +74,24 @@ class VoteBomb():
 					print(self.uvthrowAwayIDs)
 				for uid in self.uvthrowAwayIDs:
 					dbscream.AddUThrowAwayID(uid)
-					self.updateLocation(uid)
+					if self.currentLocName != dbscream.getPrevLocName():
+						print("Updating uUid Locations")
+						self.updateLocation(uid)
+				dbscream.updatePrevLocName(self.currentLocName)
+			elif self.uv =='d':
+				pass
 			else:
 				for uid in dbscream.getUThrowAways():
 					self.uvthrowAwayIDs.append(uid)
-				for uid in self.uvthrowAwayIDs:
-					self.updateLocation(uid)
+				if self.currentLocName != dbscream.getPrevLocName():
+					print("Updating uUid Locations")
+					for uid in self.uvthrowAwayIDs:
+						self.updateLocation(uid)
+				dbscream.updatePrevLocName(self.currentLocName)
+
 
 		def initDThrowAways(self):
-			if not self.needDThrowAways:
+			if self.needDThrowAways and self.uv =='d':
 				print("Generating Down-vote ThrowAways")
 				for i in range(self.numVotes):
 					self.dvthrowAwayIDs.append(self.generateThrowAwayUserID())
@@ -91,14 +99,21 @@ class VoteBomb():
 					print(self.dvthrowAwayIDs)
 				for uid in self.dvthrowAwayIDs:
 					dbscream.AddDThrowAwayID(uid)
-					self.updateLocation(uid)
+					if self.currentLocName != dbscream.getPrevLocName():
+						print("Updating dUid Locations")
+						self.updateLocation(uid)
+				dbscream.updatePrevLocName(self.currentLocName)
+			elif self.uv == 'u':
+				pass
 			else:
 				for uid in dbscream.getDThrowAways():
 					self.dvthrowAwayIDs.append(uid)
-				for uid in self.dvthrowAwayIDs:
-					self.updateLocation(uid)
+				if self.currentLocName != dbscream.getPrevLocName():
+					print("Updating dUid Locations")
+					for uid in self.dvthrowAwayIDs:
+						self.updateLocation(uid)
+				dbscream.updatePrevLocName(self.currentLocName)
 
-			
 
 		def findUMessageIDs(self):
 			data = self.session.getAreaYaks()
@@ -120,8 +135,8 @@ class VoteBomb():
 					if self.DEBUG:
 						print item['messageID']
 					self.messageToMatch = item['message'].lower().rstrip().strip()
-					#if self.DEBUG:
-					print "Mtm: %r" % self.messageToMatch
+					if self.DEBUG:
+						print "Mtm: %r" % self.messageToMatch
 			if self.uv == 'u':
 				if self.DEBUG:
 					print self.uvthrowAwayIDs
@@ -132,7 +147,7 @@ class VoteBomb():
 					data = self.session.getAreaYaks(userID=uid)
 					data = json.loads(data)['messages']
 					if self.DEBUG:
-						print uid #data
+						print uid, data
 					if self.DEBUG:
 						print data
 					for item in data:
@@ -155,18 +170,16 @@ class VoteBomb():
 					if self.DEBUG:
 						print data
 					for item in data:
-						#print "%r" % item['message']
 						message = item['message'].lower().rstrip().strip()
-						#if 'had' in message:
-						#	print "mess: %r" % message
 						if self.messageToMatch == message:
 							self.dbombShell[uid] = item['messageID']
 							if self.DEBUG:
 								print self.dbombShell[uid]
 		
 		def launchNuke(self):
-			print self.ubombShell
-			print self.dbombShell
+			if self.DEBUG:
+				print self.ubombShell
+				print self.dbombShell
 			if self.uv == 'u':
 				for i in range(self.numVotes):
 					uid = self.uvthrowAwayIDs[i]
@@ -175,7 +188,6 @@ class VoteBomb():
 				for i in range(self.numVotes):
 					uid = self.dvthrowAwayIDs[i]
 					self.downVoteMessage(uid, self.dbombShell[uid])
-
 
 		def generateThrowAwayUserID(self):
 			headers = {'User-Agent': self.session.userAgent,'Content-Type': 'application/x-www-form-urlencoded'}
@@ -196,7 +208,6 @@ class VoteBomb():
 			values = {'lat': self.session.latitude, 'long' : self.session.longitude, 'userID': uid }
 			values = urllib.urlencode(values)
 			url = url + '?' + values
-			#print(url)
 			conn = httplib.HTTPSConnection(self.session.baseUrl)
 			conn.request("GET", url, "",  headers)
 			response = conn.getresponse()
@@ -209,16 +220,15 @@ class VoteBomb():
 			headers = {'User-Agent': self.session.userAgent, 'Connection' : 'Keep-Alive', 'Content-Type': 'application/x-www-form-urlencoded'}
 			values = {'messageID' : messageID, 'userID': userID}
 			values = urllib.urlencode(values)
-			#print values # you might want to check this to make sure it looks the way you want
 			url = url + '?' + values
-			#print url  # you might want to check this to make sure it looks the way you want
 			conn = httplib.HTTPConnection(host)
 			conn.request("GET", url, "", headers)
 			response = conn.getresponse()
 			data = response.read()
-			print('Response: ', response.status, response.reason)
-			print('Data:')
-			print(data)
+			if self.DEBUG:
+				print('Response: ', response.status, response.reason)
+				print('Data:')
+				print(data)
 			conn.close()
 
 		def downVoteMessage(self,userID, messageID):
@@ -227,14 +237,13 @@ class VoteBomb():
 			headers = {'User-Agent': self.session.userAgent, 'Connection' : 'Keep-Alive', 'Content-Type': 'application/x-www-form-urlencoded'}
 			values = {'messageID' : messageID, 'userID': userID}
 			values = urllib.urlencode(values)
-			#print values # you might want to check this to make sure it looks the way you want
 			url = url + '?' + values
-			#print url  # you might want to check this to make sure it looks the way you want
 			conn = httplib.HTTPConnection(host)
 			conn.request("GET", url, "", headers)
 			response = conn.getresponse()
 			data = response.read()
-			print('Response: ', response.status, response.reason)
-			print('Data:')
-			print(data)
+			if self.DEBUG:
+				print('Response: ', response.status, response.reason)
+				print('Data:')
+				print(data)
 			conn.close()
