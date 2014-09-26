@@ -3,6 +3,7 @@ import os
 DEBUG = False
 
 db = sl.connect("hacktheyak.db")
+db.text_factory = str
 dc = db.cursor()
 
 def BuildTables():
